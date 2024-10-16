@@ -232,6 +232,7 @@ wsServer.on("connection", (socket) => {
     done();
   });
   socket.on("newMessage", async (msg, userData, roomId, done) => {
+    console.log("socket on newMessage: ", msg, userData, roomId, done);
     const insertData = { ...userData, content: msg, roomId };
     const { error } = await supabase.from("chats").insert(insertData);
     if (error) throw new Error(error.message);
