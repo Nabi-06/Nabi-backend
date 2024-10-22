@@ -28,8 +28,13 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const apiSecretKey = "test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R";
 
+const secretKey = "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6";
+
 const encryptedApiSecretKey =
   "Basic " + Buffer.from(apiSecretKey + ":").toString("base64");
+
+const encryptedSecretKey =
+  "Basic " + Buffer.from(secretKey + ":").toString("base64");
 
 app.get("/", (req, res) => {
   return res.send("helloworld");
@@ -130,6 +135,40 @@ app.post("/issue-billing-key", (req, res) => {
     };
 
     res.status(response.status).json(responseData);
+  });
+});
+
+// 결제 승인
+app.post("/confirm", function (req, res) {
+  const { paymentKey, orderId, amount, domain, userId } = req.body;
+
+  fetch("https://api.tosspayments.com/v1/payments/confirm", {
+    method: "POST",
+    headers: {
+      Authorization: encryptedSecretKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      orderId: orderId,
+      amount: amount,
+      paymentKey: paymentKey,
+    }),
+  }).then(async function (response) {
+    const result = await response.json();
+    console.log(result);
+
+    if (!response.ok) {
+      res.status(response.status).json(result);
+
+      return;
+    }
+
+    const insertFundData = { domain, amount, sponsorId: userId };
+    const { error } = await supabase.from("funds").insert(insertFundData);
+
+    if (error) throw new Error(error.message);
+
+    res.status(response.status).json(result);
   });
 });
 
